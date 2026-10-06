@@ -1,0 +1,683 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ImminentGration · trip immigration workflow</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            background: #f9fbfe;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            min-height: 100vh; padding: 24px 16px; color: #0b2b4a;
+        }
+
+        .slideshow-container {
+            max-width: 1280px; width: 100%; background: #ffffff;
+            border-radius: 32px;
+            box-shadow: 0 20px 40px -12px rgba(0, 67, 126, 0.15), 0 8px 24px -8px rgba(0, 50, 100, 0.1);
+            padding: 32px 32px 28px;
+            border: 1px solid rgba(0, 112, 243, 0.12);
+        }
+
+        .slide-header {
+            display: flex; align-items: center; justify-content: space-between;
+            margin-bottom: 32px;
+        }
+
+        .step-indicator {
+            font-size: 0.85rem; font-weight: 500; letter-spacing: 0.02em;
+            background: #edf4fd; color: #0066cc;
+            padding: 6px 14px; border-radius: 100px;
+            border: 1px solid rgba(0, 102, 204, 0.2);
+        }
+
+        .parties-legend { display: flex; gap: 24px; font-size: 0.85rem; font-weight: 500; }
+        .legend-item { display: flex; align-items: center; gap: 6px; color: #1e4b6e; }
+        .legend-dot { width: 10px; height: 10px; border-radius: 50%; background: #cbdbe9; }
+        .legend-dot.active { background: #0070f3; box-shadow: 0 0 0 2px rgba(0, 112, 243, 0.2); }
+
+        .columns-grid {
+            display: grid; grid-template-columns: repeat(4, 1fr);
+            gap: 16px; margin-bottom: 36px;
+        }
+
+        .party-col {
+            background: #ffffff; border-radius: 24px;
+            border: 1.5px solid #e1eefb; padding: 20px 14px 16px;
+            display: flex; flex-direction: column;
+            transition: all 0.2s ease;
+            box-shadow: 0 2px 6px rgba(0, 50, 100, 0.02);
+            min-height: 180px;
+        }
+        .party-col.active {
+            border-color: #0070f3; background: #f5faff;
+            box-shadow: 0 8px 20px -8px rgba(0, 112, 243, 0.25);
+        }
+
+        .party-col .party-name {
+            font-weight: 600; font-size: 1.1rem; letter-spacing: -0.01em;
+            margin-bottom: 4px; color: #0b2b4a;
+            display: flex; align-items: center; gap: 6px;
+        }
+        .party-col .party-sub {
+            font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.04em;
+            color: #5b7e9c; margin-bottom: 14px; font-weight: 500;
+        }
+
+        .party-message {
+            font-size: 0.82rem; line-height: 1.4; color: #17405e;
+            margin-top: 12px; padding: 10px 12px; background: #eef5fc;
+            border-radius: 14px; border-left: 3px solid #9dc2e8;
+        }
+        .party-col.active .party-message { background: #e2efff; border-left-color: #0070f3; }
+
+        .slide-content {
+            background: #f8fcff; border-radius: 24px;
+            padding: 24px 28px; border: 1px solid #d8e8fa;
+            margin-bottom: 32px; min-height: 130px;
+            display: flex; align-items: center;
+        }
+
+        .step-description { font-size: 1.12rem; line-height: 1.55; color: #103a5c; width: 100%; }
+        .step-description strong { color: #0066cc; font-weight: 600; }
+
+        .hash-highlight {
+            background: #e7f0fe; padding: 4px 12px; border-radius: 100px;
+            font-family: 'SF Mono', 'Fira Code', monospace; font-size: 0.95rem;
+            color: #004b99; border: 1px solid #b8d6fc;
+            display: inline-block; margin: 0 4px;
+        }
+
+        /* ---------- demo comparison ---------- */
+        .demo-grid {
+            display: grid; grid-template-columns: 1fr 1fr; gap: 20px;
+            width: 100%;
+        }
+        .demo-col {
+            background: #ffffff; border-radius: 20px;
+            padding: 18px 20px; border: 1.5px solid #d3e5fa;
+            display: flex; flex-direction: column; gap: 12px;
+        }
+        .demo-col.demo-b { border-color: #f5c99b; }
+        .demo-col.demo-b .demo-label { color: #a85d12; }
+        .demo-label {
+            font-size: 0.75rem; font-weight: 700; letter-spacing: 0.08em;
+            text-transform: uppercase; color: #0066cc;
+        }
+        .demo-info {
+            font-size: 0.9rem; line-height: 1.5;
+            background: #f3f8fe; padding: 10px 12px;
+            border-radius: 12px; color: #17405e;
+            font-family: 'SF Mono', 'Fira Code', monospace;
+        }
+        .demo-col.demo-b .demo-info { background: #fef6ec; }
+        .demo-hash {
+            font-family: 'SF Mono', 'Fira Code', monospace;
+            font-size: 0.7rem; word-break: break-all;
+            background: #0b2b4a; color: #b9e0ff;
+            padding: 10px 12px; border-radius: 10px; line-height: 1.4;
+        }
+        .demo-col.demo-b .demo-hash { color: #ffd7a8; }
+        .demo-qr {
+            align-self: center;
+            width: 160px; height: 160px;
+            background: white; border-radius: 12px;
+            border: 1px solid #d3e5fa; padding: 8px;
+            object-fit: contain;
+        }
+
+        /* ---------- code block ---------- */
+        .code-block {
+            background: #0b2b4a; color: #d6e8ff;
+            font-family: 'SF Mono', 'Fira Code', 'Courier New', monospace;
+            font-size: 0.85rem; line-height: 1.65;
+            padding: 22px 26px; border-radius: 16px;
+            width: 100%; overflow-x: auto;
+            border-left: 6px solid #0070f3;
+        }
+        .code-block .cmt { color: #7fa8cf; font-style: italic; }
+        .code-block .kw  { color: #ff9d5c; }
+        .code-block .str { color: #a8e6a1; }
+        .code-block .fn  { color: #8ec9ff; }
+
+        /* ---------- hash explainer ---------- */
+        .hash-block {
+            background: linear-gradient(105deg, #f0f7ff 0%, #ffffff 100%);
+            border-radius: 20px; padding: 22px 28px;
+            border-left: 6px solid #0070f3; margin-top: 8px;
+        }
+        .hash-block p { font-size: 1.05rem; line-height: 1.6; color: #17405e; }
+        .hash-block .mono {
+            font-family: 'SF Mono', 'Fira Code', monospace;
+            background: #e1edfd; padding: 3px 10px;
+            border-radius: 8px; font-size: 0.9rem;
+            color: #004b99; font-weight: 500;
+        }
+
+        /* ---------- post office callout ---------- */
+        .post-office-callout {
+            margin-top: 16px;
+            background: #fffaf0;
+            border-radius: 16px;
+            padding: 18px 22px;
+            border-left: 6px solid #e8a33d;
+        }
+        .post-office-callout .po-title {
+            font-size: 0.78rem;
+            font-weight: 700;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            color: #a85d12;
+            margin-bottom: 8px;
+        }
+        .post-office-callout p {
+            font-size: 1rem;
+            line-height: 1.6;
+            color: #4a3418;
+        }
+        .post-office-callout strong {
+            color: #7a4508;
+            font-weight: 600;
+        }
+
+        /* ---------- jurisdiction slide ---------- */
+        .jurisdiction-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 18px;
+            margin-top: 18px;
+            width: 100%;
+        }
+        .jurisdiction-card {
+            background: #f6fbff;
+            border-radius: 18px;
+            padding: 20px 22px;
+            border: 1.5px solid #d3e5fa;
+        }
+        .jurisdiction-card.strong-regime {
+            background: #f2fbf6;
+            border-color: #b8e0c8;
+        }
+        .jurisdiction-card .jc-title {
+            font-size: 0.78rem;
+            font-weight: 700;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            color: #0066cc;
+            margin-bottom: 10px;
+        }
+        .jurisdiction-card.strong-regime .jc-title {
+            color: #1e7a45;
+        }
+        .jurisdiction-card p {
+            font-size: 0.95rem;
+            line-height: 1.55;
+            color: #17405e;
+        }
+        .jurisdiction-card p + p {
+            margin-top: 8px;
+        }
+        .jurisdiction-footer {
+            margin-top: 18px;
+            padding-top: 16px;
+            border-top: 1px dashed #b8d2ec;
+            font-size: 1rem;
+            line-height: 1.55;
+            color: #103a5c;
+            font-style: italic;
+        }
+
+        /* ---------- summary ---------- */
+        .summary-grid {
+            display: grid; grid-template-columns: repeat(4, 1fr);
+            gap: 14px; margin-top: 12px;
+        }
+        .summary-card {
+            background: #f6fbff; border-radius: 18px;
+            padding: 18px 16px; border: 1px solid #d3e5fa;
+        }
+        .summary-card h4 {
+            font-size: 0.9rem; font-weight: 600; color: #0d3a5e;
+            margin-bottom: 12px; border-bottom: 1px dashed #b8d2ec;
+            padding-bottom: 8px;
+        }
+        .summary-card ul {
+            list-style: none; font-size: 0.82rem;
+            line-height: 1.5; color: #204e72;
+        }
+        .summary-card li {
+            margin-bottom: 10px; padding-left: 20px; position: relative;
+        }
+        .summary-card li::before {
+            content: "✓"; position: absolute; left: 0;
+            color: #0070f3; font-weight: 700;
+        }
+        .summary-card li.cross::before { content: "✕"; color: #a0b8ce; }
+        .summary-card li.cross { color: #6988a3; }
+
+        /* ---------- nav ---------- */
+        .nav-controls {
+            display: flex; justify-content: space-between; align-items: center;
+            gap: 16px; margin-top: 8px;
+        }
+        .nav-btn {
+            background: white; border: 1.5px solid #c6ddf5;
+            color: #0066cc; font-weight: 600; font-size: 1rem;
+            padding: 12px 32px; border-radius: 60px; cursor: pointer;
+            transition: all 0.15s ease;
+            display: flex; align-items: center; gap: 8px;
+            box-shadow: 0 4px 8px rgba(0, 80, 150, 0.04);
+            font-family: inherit;
+        }
+        .nav-btn:hover:not(:disabled) {
+            background: #e8f2fe; border-color: #0070f3;
+            box-shadow: 0 8px 16px -4px rgba(0, 112, 243, 0.2);
+        }
+        .nav-btn:disabled {
+            opacity: 0.4; cursor: not-allowed;
+            border-color: #d0ddeb; color: #7d9ab3; box-shadow: none;
+        }
+        .nav-btn.prev-btn { padding-left: 24px; }
+        .nav-btn.next-btn { padding-right: 24px; }
+
+        .slide-dots { display: flex; gap: 8px; justify-content: center; flex: 1; }
+        .dot {
+            width: 8px; height: 8px; border-radius: 50%;
+            background: #cee0f0; transition: all 0.2s; cursor: pointer;
+        }
+        .dot.active { background: #0070f3; width: 24px; border-radius: 12px; }
+
+        .footnote {
+            text-align: center; margin-top: 24px;
+            font-size: 0.75rem; color: #7f9ab3;
+        }
+        .footnote a { color: #4f7fa8; }
+
+        @media (max-width: 900px) {
+            .slideshow-container { padding: 22px; }
+            .columns-grid { gap: 8px; }
+            .party-col { padding: 14px 10px; }
+            .party-col .party-name { font-size: 0.9rem; }
+            .step-description { font-size: 1rem; }
+        }
+        @media (max-width: 700px) {
+            .columns-grid { grid-template-columns: repeat(2, 1fr); gap: 12px; }
+            .summary-grid { grid-template-columns: repeat(2, 1fr); }
+            .demo-grid { grid-template-columns: 1fr; }
+            .jurisdiction-grid { grid-template-columns: 1fr; }
+            .parties-legend { display: none; }
+            .nav-btn { padding: 10px 20px; font-size: 0.9rem; }
+        }
+    </style>
+</head>
+<body>
+    <div class="slideshow-container">
+        <div class="slide-header">
+            <div class="step-indicator" id="stepIndicator">Step 1 of 14</div>
+            <div class="parties-legend">
+                <span class="legend-item"><span class="legend-dot" id="dot1"></span> Traveler</span>
+                <span class="legend-item"><span class="legend-dot" id="dot2"></span> BookTravel</span>
+                <span class="legend-item"><span class="legend-dot" id="dot3"></span> ImminentGration</span>
+                <span class="legend-item"><span class="legend-dot" id="dot4"></span> Portugal</span>
+            </div>
+        </div>
+
+        <div class="columns-grid">
+            <div class="party-col" id="col-traveler">
+                <div class="party-name">✈️ Alice Anderson</div>
+                <div class="party-sub">Traveler</div>
+                <div class="party-message" id="msg-traveler">·</div>
+            </div>
+            <div class="party-col" id="col-book">
+                <div class="party-name">📱 BookTravel.com</div>
+                <div class="party-sub">Booking partner</div>
+                <div class="party-message" id="msg-book">·</div>
+            </div>
+            <div class="party-col" id="col-facilitator">
+                <div class="party-name">⚙️ ImminentGration</div>
+                <div class="party-sub">Info facilitator</div>
+                <div class="party-message" id="msg-facilitator">·</div>
+            </div>
+            <div class="party-col" id="col-portugal">
+                <div class="party-name">🇵🇹 Portugal</div>
+                <div class="party-sub">Destination</div>
+                <div class="party-message" id="msg-portugal">·</div>
+            </div>
+        </div>
+
+        <div class="slide-content" id="slideContent">
+            <div class="step-description" id="stepDescription"></div>
+        </div>
+
+        <div class="nav-controls">
+            <button class="nav-btn prev-btn" id="prevBtn" disabled>← Previous</button>
+            <div class="slide-dots" id="slideDots"></div>
+            <button class="nav-btn next-btn" id="nextBtn">Next →</button>
+        </div>
+        <div class="footnote">Immigration pre-clearance · privacy-first · hash-verified</div>
+    </div>
+
+    <script>
+        (function() {
+            const slides = [
+                { // 0
+                    step: 1,
+                    title: "Step 1",
+                    desc: "Alice decides on dates and destination. She wants to visit <strong>Portugal</strong> in June.",
+                    activeParties: ['traveler'],
+                    messages: { traveler: "Picks dates & destination 🇵🇹", book: "·", facilitator: "·", portugal: "·" }
+                },
+                { // 1
+                    step: 2,
+                    title: "Step 2",
+                    desc: "Alice logs on to <strong>BookTravel.com</strong>, selects flight & accommodation, and pays.",
+                    activeParties: ['traveler', 'book'],
+                    messages: { traveler: "Logs in, selects flight + hotel, pays", book: "Processes booking & payment", facilitator: "·", portugal: "·" }
+                },
+                { // 2
+                    step: 3,
+                    title: "Step 3",
+                    desc: "<strong>BookTravel.com</strong> provides a confirmation code for flight & accommodation, plus a universal link with a prompt to fill out Portugal's immigration form.",
+                    activeParties: ['book', 'traveler'],
+                    messages: { traveler: "Receives confirmation + immigration prompt link", book: "Sends confirmation code + universal link", facilitator: "·", portugal: "·" }
+                },
+                { // 3
+                    step: 4,
+                    title: "Step 4",
+                    desc: "<strong>ImminentGration</strong> provides the form and asks: have you filled out a form for this particular trip yet? If yes, use the previous confirmation code; if no, it provides the country-specific form.",
+                    activeParties: ['facilitator', 'traveler'],
+                    messages: { traveler: "Answers form question", book: "·", facilitator: "Shows form & asks previous trip question", portugal: "·" }
+                },
+                { // 4
+                    step: 5,
+                    title: "Step 5",
+                    desc: "<strong>Alice</strong> fills out the immigration information.",
+                    activeParties: ['traveler', 'facilitator'],
+                    messages: { traveler: "Fills in immigration details", book: "·", facilitator: "Receives form input (transient)", portugal: "·" }
+                },
+                { // 5
+                    step: 6,
+                    title: "Step 6",
+                    desc: "<strong>ImminentGration</strong> asks whether there are any other family members or dependents on the trip. If yes, it provides an additional form; if no, it proceeds to the next step.",
+                    activeParties: ['facilitator', 'traveler'],
+                    messages: { traveler: "Confirms no extra forms (or adds dependents)", book: "·", facilitator: "Checks for dependents", portugal: "·" }
+                },
+                { // 6
+                    step: 7,
+                    title: "Step 7",
+                    desc: "<strong>ImminentGration</strong> prompts an <strong>optional tourism form</strong> (activities, transport, dining). If filled, it goes <strong>directly to Portugal's tourism authority</strong>.",
+                    activeParties: ['facilitator', 'traveler', 'portugal'],
+                    messages: { traveler: "Optionally fills tourism info", book: "·", facilitator: "Offers optional tourism form", portugal: "Receives tourism data (if opted in)" }
+                },
+                { // 7
+                    step: 8,
+                    title: "Step 8",
+                    desc: "<strong>ImminentGration</strong> provides the immigration information <strong>directly to Portugal</strong>.",
+                    activeParties: ['facilitator', 'portugal'],
+                    messages: { traveler: "·", book: "·", facilitator: "Transmits immigration data to Portugal", portugal: "Receives immigration form data" }
+                },
+                { // 8
+                    step: 9,
+                    title: "Step 9",
+                    desc: "<strong>Portugal</strong> verifies the info and emails Alice directly: either a confirmation, receipt, and scannable QR code, or a description of missing or incorrect info plus a form link. <strong>Bypasses facilitator and booking partner.</strong> <br><span class='hash-highlight'>SHA-256 hash</span> of the form data is inside the QR code; only Alice and Portugal can re-verify.",
+                    activeParties: ['portugal', 'traveler'],
+                    messages: {
+                        traveler: "Receives QR code (or correction request) directly by email",
+                        book: "·", facilitator: "·",
+                        portugal: "Verifies, generates QR with SHA-256 hash, emails Alice"
+                    }
+                },
+                { // 9 — Why hashing matters
+                    step: 10,
+                    title: "Why hashing matters",
+                    desc: "The QR code contains a <strong>SHA-256 hash</strong> of the immigration data. Portugal can recreate that hash from the original data. Alice can re-verify later. <strong>Neither BookTravel nor ImminentGration can read or keep the private information.</strong> Hashing is easy; it is a one-way fingerprint.",
+                    activeParties: ['traveler', 'portugal'],
+                    messages: {
+                        traveler: "Holds QR with hash fingerprint",
+                        book: "No access to immigration data",
+                        facilitator: "No access to immigration data",
+                        portugal: "Can recreate hash to verify authenticity"
+                    },
+                    extraHashBlock: true
+                },
+                { // 10 — Side-by-side demo
+                    step: 11,
+                    title: "See it in action",
+                    desc: "Same person, one day off, one letter different. The hash, and therefore the QR code, becomes <strong>completely unrecognizable</strong>. That is why any edit is instantly detectable.",
+                    activeParties: ['traveler', 'portugal'],
+                    messages: {
+                        traveler: "Two almost-identical records",
+                        book: "·", facilitator: "·",
+                        portugal: "Two totally different hashes"
+                    },
+                    isDemo: true
+                },
+                { // 11 — R code slide
+                    step: 12,
+                    title: "Six lines of R",
+                    desc: "This isn't exotic cryptography. Hashing and QR generation are one-line library calls in any modern language. Below is the entire demo.",
+                    activeParties: [],
+                    messages: { traveler: "·", book: "·", facilitator: "·", portugal: "·" },
+                    isCode: true
+                },
+                { // 12 — NEW: One design, every jurisdiction
+                    step: 13,
+                    title: "One design, every jurisdiction",
+                    desc: "Because the privacy guarantee is <strong>architectural, not policy-based</strong>, the same implementation works for a country with strict data-protection law and for one with none at all. Regulators can audit the message flow; travelers are protected either way. No per-country variants, no compliance mode.",
+                    activeParties: [],
+                    messages: { traveler: "·", book: "·", facilitator: "·", portugal: "·" },
+                    isJurisdiction: true
+                },
+                { // 13 — Summary
+                    step: 14,
+                    title: "Step 10 & summary",
+                    desc: "<strong>Alice travels, shows her QR code at immigration. The officer checks it against her passport; entry approved.</strong> Here is who holds what at the end:",
+                    activeParties: [],
+                    messages: {
+                        traveler: "Flight & hotel codes + immigration QR",
+                        book: "Travel dates & details only",
+                        facilitator: "Service confirmation + tourism info (if opted in)",
+                        portugal: "Immigration form data + QR code"
+                    },
+                    isSummary: true
+                }
+            ];
+
+            const stepIndicator   = document.getElementById('stepIndicator');
+            const stepDescription = document.getElementById('stepDescription');
+            const prevBtn         = document.getElementById('prevBtn');
+            const nextBtn         = document.getElementById('nextBtn');
+            const slideDots       = document.getElementById('slideDots');
+
+            const cols = {
+                traveler:    document.getElementById('col-traveler'),
+                book:        document.getElementById('col-book'),
+                facilitator: document.getElementById('col-facilitator'),
+                portugal:    document.getElementById('col-portugal')
+            };
+            const msgs = {
+                traveler:    document.getElementById('msg-traveler'),
+                book:        document.getElementById('msg-book'),
+                facilitator: document.getElementById('msg-facilitator'),
+                portugal:    document.getElementById('msg-portugal')
+            };
+            const legendDots = {
+                traveler:    document.getElementById('dot1'),
+                book:        document.getElementById('dot2'),
+                facilitator: document.getElementById('dot3'),
+                portugal:    document.getElementById('dot4')
+            };
+
+            let currentSlide = 0;
+            const totalSlides = slides.length;
+
+            // ---- content builders for special slides ----
+
+            const demoHTML = `
+                <p style="margin-bottom:18px;">Same person, one day off. Watch what happens to the hash, and therefore to the QR.</p>
+                <div class="demo-grid">
+                    <div class="demo-col demo-a">
+                        <div class="demo-label">Record A · original</div>
+                        <div class="demo-info">Alice Anderson<br>2025-06-05 → 2025-06-10</div>
+                        <div class="demo-hash">e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855</div>
+                        <img class="demo-qr" src="qr_alice.png" alt="QR code for Record A">
+                    </div>
+                    <div class="demo-col demo-b">
+                        <div class="demo-label">Record B · one letter + one day off</div>
+                        <div class="demo-info">Alison Anderson<br>2025-06-04 → 2025-06-09</div>
+                        <div class="demo-hash">7f83b1657ff1fc53b92dc18148a1d65dfc2d4b1fa3d677284addd200126d9069</div>
+                        <img class="demo-qr" src="qr_alison.png" alt="QR code for Record B">
+                    </div>
+                </div>
+            `;
+
+            const codeHTML = `
+                <p style="margin-bottom:16px;">No custom cryptography. Two library calls, one hash per record, one QR per hash. That is the whole thing.</p>
+                <div class="code-block">
+<span class="cmt"># install.packages(c("digest", "qrcode"))</span>
+<span class="kw">library</span>(digest)
+<span class="kw">library</span>(qrcode)
+
+info_a <span class="kw">&lt;-</span> <span class="str">"Alice Anderson|2025-06-05|2025-06-10"</span>
+info_b <span class="kw">&lt;-</span> <span class="str">"Alison Anderson|2025-06-04|2025-06-09"</span>
+
+hash_a <span class="kw">&lt;-</span> <span class="fn">digest</span>(info_a, algo = <span class="str">"sha256"</span>, serialize = <span class="kw">FALSE</span>)
+hash_b <span class="kw">&lt;-</span> <span class="fn">digest</span>(info_b, algo = <span class="str">"sha256"</span>, serialize = <span class="kw">FALSE</span>)
+
+<span class="fn">png</span>(<span class="str">"qr_alice.png"</span>,  width = 300, height = 300)
+<span class="fn">plot</span>(<span class="fn">qr_code</span>(hash_a)); <span class="fn">dev.off</span>()
+
+<span class="fn">png</span>(<span class="str">"qr_alison.png"</span>, width = 300, height = 300)
+<span class="fn">plot</span>(<span class="fn">qr_code</span>(hash_b)); <span class="fn">dev.off</span>()
+                </div>
+            `;
+
+            const jurisdictionHTML = `
+                <div class="jurisdiction-grid">
+                    <div class="jurisdiction-card strong-regime">
+                        <div class="jc-title">Strict data-protection jurisdiction</div>
+                        <p>Regulators can audit the message flow end to end.</p>
+                        <p>The facilitator holds only a receipt that a submission occurred, never the immigration payload itself.</p>
+                        <p>Compliance is demonstrable, not just promised.</p>
+                    </div>
+                    <div class="jurisdiction-card">
+                        <div class="jc-title">Minimal data-protection jurisdiction</div>
+                        <p>The traveler is protected by the architecture, not by the destination's goodwill.</p>
+                        <p>Even if the destination wanted the facilitator to hand over the data, the facilitator does not have it.</p>
+                        <p>The same flow works without any additional safeguards bolted on.</p>
+                    </div>
+                </div>
+                <div class="jurisdiction-footer">
+                    One implementation, one audit surface, one privacy guarantee. The hash-and-direct-submission pattern behaves identically whether the destination is Lisbon or a country with no privacy regulator at all.
+                </div>
+            `;
+
+            const summaryHTML = `
+                <p style="margin-bottom:16px;">Alice travels, shows her QR at immigration. The officer scans it and checks it against her passport. Entry approved. Here is who holds what at the end:</p>
+                <div class="summary-grid">
+                    <div class="summary-card"><h4>✈️ Alice (traveler)</h4><ul>
+                        <li>Flight & accommodation confirmation codes</li>
+                        <li>Immigration QR Code</li>
+                        <li class="cross">No tourism form data unless she filled it</li>
+                    </ul></div>
+                    <div class="summary-card"><h4>📱 BookTravel.com</h4><ul>
+                        <li>Travel dates & destination</li>
+                        <li>Accommodation details</li>
+                        <li class="cross">NO immigration information</li>
+                    </ul></div>
+                    <div class="summary-card"><h4>⚙️ ImminentGration</h4><ul>
+                        <li>Confirmation that service was used</li>
+                        <li>Destination country (Portugal)</li>
+                        <li>Tourism info (only if opted in)</li>
+                        <li class="cross">No immigration form data</li>
+                    </ul></div>
+                    <div class="summary-card"><h4>🇵🇹 Portugal</h4><ul>
+                        <li>Precise immigration form information</li>
+                        <li>Generated QR Code (with SHA-256 hash)</li>
+                        <li>Tourism data if submitted</li>
+                    </ul></div>
+                </div>
+            `;
+
+            function buildDots() {
+                slideDots.innerHTML = '';
+                for (let i = 0; i < totalSlides; i++) {
+                    const dot = document.createElement('span');
+                    dot.className = 'dot' + (i === currentSlide ? ' active' : '');
+                    dot.dataset.index = i;
+                    dot.addEventListener('click', () => goToSlide(i));
+                    slideDots.appendChild(dot);
+                }
+            }
+
+            function updateSlide() {
+                const slide = slides[currentSlide];
+
+                stepIndicator.textContent = `${slide.title} of ${totalSlides}`;
+
+                if (slide.isSummary) {
+                    stepDescription.innerHTML = summaryHTML;
+                } else if (slide.isDemo) {
+                    stepDescription.innerHTML = demoHTML;
+                } else if (slide.isCode) {
+                    stepDescription.innerHTML = codeHTML;
+                } else if (slide.isJurisdiction) {
+                    stepDescription.innerHTML = `<p>${slide.desc}</p>` + jurisdictionHTML;
+                } else if (slide.extraHashBlock) {
+                    stepDescription.innerHTML = `
+                        <p>${slide.desc}</p>
+                        <div class="hash-block" style="margin-top:16px;">
+                            <p><span class="mono">SHA-256(immigration_data) → QR</span> Portugal stores the hash, Alice's QR holds it.
+                            Re-verification is easy: both sides compute the hash from the original data and compare.
+                            No third party can interpret or retain the private immigration details.</p>
+                        </div>
+                        <div class="post-office-callout">
+                            <div class="po-title">How does ImminentGration not see the data?</div>
+                            <p>It's a <strong>post office, not a filing cabinet</strong>. The traveler's browser submits the immigration form <strong>directly to Portugal</strong>. ImminentGration only knows <em>that</em> a submission happened, and separately holds the tourism info, because that is the one form it is designed to route.</p>
+                        </div>
+                    `;
+                } else {
+                    stepDescription.innerHTML = slide.desc;
+                }
+
+                const active = slide.activeParties || [];
+                for (let [key, col] of Object.entries(cols)) {
+                    col.classList.toggle('active', active.includes(key));
+                }
+                for (let [key, msgEl] of Object.entries(msgs)) {
+                    msgEl.textContent = slide.messages[key] || '·';
+                }
+                for (let [key, dot] of Object.entries(legendDots)) {
+                    dot.classList.toggle('active', active.includes(key));
+                }
+                document.querySelectorAll('.dot').forEach((dot, idx) => {
+                    dot.classList.toggle('active', idx === currentSlide);
+                });
+
+                prevBtn.disabled = currentSlide === 0;
+                nextBtn.disabled = currentSlide === totalSlides - 1;
+            }
+
+            function goToSlide(index) {
+                if (index < 0 || index >= totalSlides) return;
+                currentSlide = index;
+                updateSlide();
+            }
+
+            prevBtn.addEventListener('click', () => goToSlide(currentSlide - 1));
+            nextBtn.addEventListener('click', () => goToSlide(currentSlide + 1));
+
+            window.addEventListener('keydown', (e) => {
+                if (e.key === 'ArrowLeft')  { e.preventDefault(); goToSlide(currentSlide - 1); }
+                if (e.key === 'ArrowRight') { e.preventDefault(); goToSlide(currentSlide + 1); }
+            });
+
+            buildDots();
+            updateSlide();
+        })();
+    </script>
+</body>
+</html>
